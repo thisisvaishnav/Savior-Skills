@@ -1,0 +1,153 @@
+#!/bin/bash
+# add-skill — wrapper around `npx skills add` that also mirrors every installed
+# skill into the ~/ai-skills repo, then commits (and pushes by default).
+#
+# Usage (same args as `npx skills add`):
+#   add-skill <repo> [--skill <name> ...] [flags]
+#   add-skill --mirror-only <name> [<name>...]   # re-sync from ~/.agents/skills
+#   add-skill <repo> --skill <name> --no-push    # skip git push
+#
+# Detected skills are copied from ~/.agents/skills/<name> (or ./.agents/skills/<name>
+# for project installs) into ~/ai-skills/<name>, committed, and pushed to origin/main.
+
+AI_SKILLS_DIR="$HOME/ai-skills"
+GLOBAL_STORE="$HOME/.agents/skills"
+LOCK_FILE="$HOME/.agents/.skill-lock.json"
+
+PUSH=1
+MIRROR_ONLY=0
+CLI_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-push)    PUSH=0; shift ;;
+    --mirror-only) MIRROR_ONLY=1; shift ;;
+    *)            CLI_ARGS+=("$1"); shift ;;
+  esac
+done
+
+names=()
+before=$(mktemp)
+after=$(mktemp)
+
+if [[ "$MIRROR_ONLY" == "1" ]]; then
+  names=("${CLI_ARGS[@]}")
+else
+  # Snapshot the lock file so we can detect what the install changed.
+  if [[ -f "$LOCK_FILE" ]]; then cp "$LOCK_FILE" "$before"; else echo '{}' > "$before"; fi
+
+  echo "▸ Running: npx skills add ${CLI_ARGS[*]}"
+  npx skills add "${CLI_ARGS[@]}"
+
+  # Collect explicit --skill / -s names.
+  i=0
+  while [[ $i -lt ${#CLI_ARGS[@]} ]]; do
+    case "${CLI_ARGS[$i]}" in
+      --skill|-s)
+        j=$((i+1))
+        while [[ $j -lt ${#CLI_ARGS[@]} && "${CLI_ARGS[$j]}" != -* ]]; do
+          names+=("${CLI_ARGS[$j]}")
+          j=$((j+1))
+        done
+        i=$j
+        ;;
+      *) i=$((i+1)) ;;
+    esac
+  done
+
+  # Fallback: diff the lock file to catch installs that didn't use --skill.
+  if [[ ${#names[@]} -eq 0 ]]; then
+    if [[ -f "$LOCK_FILE" ]]; then cp "$LOCK_FILE" "$after"; else echo '{}' > "$after"; fi
+    while IFS= read -r n; do [[ -n "$n" ]] && names+=("$n"); done < <(
+      python3 - "$before" "$after" <<'PYEOF'
+import json, sys
+
+def load(p):
+    try:
+        with open(p) as f:
+            return json.load(f).get("skills", {})
+    except Exception:
+        return {}
+
+before, after = load(sys.argv[1]), load(sys.argv[2])
+changed = [k for k in after
+           if k not in before
+           or before[k].get("skillFolderHash") != after[k].get("skillFolderHash")]
+print("\n".join(changed))
+PYEOF
+    )
+  fi
+fi
+
+rm -f "$before" "$after"
+
+# Wildcard installs mirror nothing automatically (would dump the whole store).
+filtered=()
+for n in "${names[@]}"; do
+  if [[ "$n" == *"'"* ]]; then continue; fi
+  if [[ "$n" == "*" ]]; then
+    echo "⚠  Wildcard install — use --mirror-only <name> to mirror specific skills."
+  else
+    filtered+=("$n")
+  fi
+done
+names=("${filtered[@]}")
+
+if [[ ${#names[@]} -eq 0 ]]; then
+  echo "No new/changed skills detected — nothing to mirror."
+  exit 0
+fi
+
+# Mirror each skill into ~/ai-skills. Search every location the skills CLI
+# installs to (global store, per-agent dirs, project-local equivalents).
+mirrored=()
+for name in "${names[@]}"; do
+  src=""
+  for base in \
+    "$GLOBAL_STORE" \
+    "$HOME/.claude/skills" "$PWD/.claude/skills" \
+    "$HOME/.codex/skills"  "$PWD/.codex/skills" \
+    "$HOME/.cursor/skills" "$PWD/.cursor/skills" \
+    "$HOME/.gemini/skills" "$PWD/.gemini/skills" \
+    "$HOME/.opencode/skills" "$PWD/.opencode/skills" \
+    "$HOME/.config/opencode/skill" "$PWD/.config/opencode/skill"
+  do
+    if [[ -d "$base/$name" ]]; then src="$base/$name"; break; fi
+  done
+  if [[ -z "$src" ]]; then
+    echo "⚠  '$name' not found in any known skills directory — skipping."
+    continue
+  fi
+  dest="$AI_SKILLS_DIR/$name"
+  if [[ -d "$dest" ]]; then
+    echo "• Overwriting existing '$name' in ai-skills (old version stays in git history)."
+  fi
+  rm -rf "$dest"
+  mkdir -p "$dest"
+  cp -R "$src/." "$dest/"
+  mirrored+=("$name")
+  echo "✓ Mirrored $name → ~/ai-skills/$name (from $src)"
+done
+
+if [[ ${#mirrored[@]} -eq 0 ]]; then
+  echo "Nothing mirrored."
+  exit 0
+fi
+
+cd "$AI_SKILLS_DIR" || exit 1
+git add -- "${mirrored[@]}"
+
+if git diff --cached --quiet; then
+  echo "No changes to commit."
+  exit 0
+fi
+
+git commit -m "Add skill(s): ${mirrored[*]} (via npx skills add)"
+
+if [[ "$PUSH" == "1" ]]; then
+  if git push origin main; then
+    echo "✓ Pushed to origin/main"
+  else
+    echo "⚠  Push failed — commit is local. Run 'git push origin main' manually."
+  fi
+fi

@@ -1,107 +1,82 @@
-# 🧠 ai-skills
+# Professional Project Skills
 
-This is a treasure box of **skills** for your AI helper (like Claude Code).
+Skills and principles for building projects with **accuracy and professionalism**, not just ease.
 
-A "skill" is a small instruction file (`SKILL.md`) that teaches your AI helper
-how to do one job really well — like doing research, writing React, or
-planning projects.
+## Skills Overview
 
-## 📦 What's inside
+| Skill | Purpose |
+|-------|---------|
+| `domain-modeling` | Pin down domain terminology and ubiquitous language |
+| `architecture` | Make solid design decisions with clear trade-offs |
+| `grilling` | Stress-test your plan relentlessly before building |
+| `to-prd` | Turn requirements into clear product specs |
+| `to-issues` | Break work into small, independent vertical slices |
+| `tdd` | Test-driven development - red, green, refactor |
+| `codebase-design` | Design deep, clean, testable modules |
+| `diagnosing-bugs` | Find and fix issues precisely |
 
-| Skill | What it teaches your AI |
-|-------|------------------------|
-| `architecture` | Write design decision docs (ADRs) |
-| `web-research` | Search the web properly and check facts |
-| `python-data-analysis` | Analyze data with pandas |
-| `academic-writing` | Write like a scientist |
-| `coding-best-practices` | Write clean, tested code |
-| `react` | Build React apps the right way |
-| `project-planning` | Break big projects into small steps |
+## The 4 Principles
 
-## ✨ The magic command
+| Principle | Meaning |
+|-----------|---------|
+| **Think Before Coding** | Understand the problem fully before writing code |
+| **Simplicity First** | Choose the simplest solution that works |
+| **Surgical Changes** | Make minimal, precise changes |
+| **Goal-Driven Execution** | Define "done" before starting, verify at each step |
 
-When you want a new skill, just type this in your terminal:
+## How to Use
 
-```bash
-npx skills add https://github.com/anthropics/knowledge-work-plugins --skill architecture
+### Principle Application
+
+```
+Think Before Coding    → Apply in: domain-modeling, architecture, grilling
+Simplicity First       → Apply in: architecture, codebase-design
+Surgical Changes       → Apply in: to-issues, tdd, diagnosing-bugs
+Goal-Driven Execution  → Apply in: to-prd, tdd
 ```
 
-(Put any GitHub repo after `add`, and any skill name after `--skill`.)
+### Project Workflow
 
-**What happens:** 🪄
+**Phase 1: Plan (Before Any Code)**
+1. `domain-modeling` - Understand the problem domain
+2. `architecture` - Decide design approach
+3. `grilling` - Challenge your decisions
 
-1. The skill gets installed so your AI helper can use it.
-2. **A copy is saved into this `ai-skills` folder.**
-3. It is committed and pushed to GitHub automatically. Done! 🎉
+**Phase 2: Spec (Define What to Build)**
+4. `to-prd` - Create clear requirements
+5. `to-issues` - Break into small, actionable tasks
 
-## 🚀 How to set it up (do this only ONCE)
+**Phase 3: Build (Write Code)**
+6. `tdd` - Write tests first, then code
+7. `codebase-design` - Design clean modules
 
-### Step 1 — Get this folder on your computer
+**Phase 4: Verify (Validate)**
+8. `diagnosing-bugs` - Find and fix issues
 
-Ask the terminal to download the repo:
+### Usage Examples
 
-```bash
-git clone https://github.com/thisisvaishnav/ai-skills.git ~/ai-skills
+```
+# Planning phase
+"I need to design a new feature" → Use architecture
+"Let me understand the domain first" → Use domain-modeling
+"Challenge my assumptions" → Use grilling
+
+# Spec phase
+"Create requirements for this" → Use to-prd
+"Break this into tasks" → Use to-issues
+
+# Build phase
+"Add tests for this" → Use tdd
+"Design this module" → Use codebase-design
+
+# Verify phase
+"Find what's broken" → Use diagnosing-bugs
 ```
 
-### Step 2 — Tell your terminal about the magic
+## Complete Workflow
 
-Copy this whole block, paste it into the Terminal, press Enter:
-
-```bash
-cat >> ~/.zshrc <<'EOF'
-
-# >>> ai-skills mirror >>>
-# Makes `npx skills add ...` also save a copy into ~/ai-skills and push to GitHub.
-npx() {
-  if [[ "$1" == "skills" && "$2" == "add" ]]; then
-    shift 2
-    "$HOME/ai-skills/bin/add-skill" "$@"
-  else
-    command npx "$@"
-  fi
-}
-# <<< ai-skills mirror <<<
-EOF
-source ~/.zshrc
+```
+domain-modeling → architecture → grilling → to-prd → to-issues → tdd → codebase-design → diagnosing-bugs
 ```
 
-### Step 3 — Make sure the helper script can run
-
-```bash
-chmod +x ~/ai-skills/bin/add-skill
-```
-
-That's it! Now use the magic command any time. 🎉
-
-## 💡 Useful tricks
-
-```bash
-# See what skills a repo has, without installing anything
-npx skills add https://github.com/anthropics/knowledge-work-plugins --list
-
-# Save a skill but DON'T upload it to GitHub
-npx skills add <repo> --skill <name> --no-push
-
-# Manually copy an already-installed skill into this repo
-~/ai-skills/bin/add-skill --mirror-only <skill-name>
-```
-
-## 🧪 Check that everything works
-
-```bash
-bash ~/ai-skills/tests/add-skill-test.sh
-```
-
-If you see `RESULT: 23 passed, 0 failed`, everything is happy. ✅
-The tests use a fake pretend-computer (a sandbox), so they never touch your
-real files.
-
-## 🩹 If something goes wrong
-
-| Problem | Fix |
-|---------|-----|
-| `npx skills add` behaved like normal (no copy saved) | Run `source ~/.zshrc` and try again |
-| It says "push failed" | You may have no internet, or you need to log in to GitHub. Try `git -C ~/ai-skills push` later |
-| It says "No origin remote" | Run: `git -C ~/ai-skills remote add origin https://github.com/thisisvaishnav/ai-skills.git` |
-| You broke something | Don't worry! Old versions are saved forever by git. Ask your AI helper to help |
+Every line of code has a reason, every change is minimal, every decision is tested, every goal is measurable.

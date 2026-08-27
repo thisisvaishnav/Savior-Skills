@@ -135,6 +135,18 @@ if [[ ${#mirrored[@]} -eq 0 ]]; then
 fi
 
 cd "$AI_SKILLS_DIR" || exit 1
+
+# First run on a fresh folder: initialize the repo so commits work.
+if [[ ! -d .git ]]; then
+  echo "▸ Initializing git repository in $AI_SKILLS_DIR"
+  git init -q -b main
+fi
+# Fresh machines have no git identity configured — add a local fallback.
+if [[ -z "$(git config user.email 2>/dev/null || true)" ]]; then
+  git config user.email "you@example.com"
+  git config user.name "ai-skills"
+fi
+
 git add -- "${mirrored[@]}"
 
 if git diff --cached --quiet; then
@@ -145,7 +157,10 @@ fi
 git commit -m "Add skill(s): ${mirrored[*]} (via npx skills add)"
 
 if [[ "$PUSH" == "1" ]]; then
-  if git push origin main; then
+  if ! git remote get-url origin >/dev/null 2>&1; then
+    echo "ℹ  No origin remote configured — skipped push. Add one with:"
+    echo "   git remote add origin https://github.com/<you>/ai-skills.git"
+  elif git push origin main; then
     echo "✓ Pushed to origin/main"
   else
     echo "⚠  Push failed — commit is local. Run 'git push origin main' manually."
